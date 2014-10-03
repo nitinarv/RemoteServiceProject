@@ -6,26 +6,39 @@ import android.os.RemoteException;
 import java.sql.Connection;
 
 /**
- * Created by apple on 03/10/14.
+ * Created by Nitinraj Arvind on 03/10/14.
  */
 public abstract class ServiceManager {
 
     private static ServiceManagerImplementation serviceManagerImplementation = null;
 
     private static void connect(Context context, ConnectionCallback connectionCallback){
-
+        if(serviceManagerImplementation == null){
+            serviceManagerImplementation = new ServiceManagerImplementation(context);
+        }
+        serviceManagerImplementation.connect(connectionCallback);
     }
 
     private static void disconnect(Context context){
-
+       if(serviceManagerImplementation != null){
+           serviceManagerImplementation.disconnect();
+       }
     }
 
-    private static void isServiceAvailable(Context context){
-
+    private static boolean isServiceAvailable(Context context){
+        if(serviceManagerImplementation != null){
+            return serviceManagerImplementation.isServiceAvailable();
+        }else{
+            return false;
+        }
     }
 
-    private static void isServiceConnected(Context context){
-
+    private static boolean isServiceConnected(Context context){
+        if(serviceManagerImplementation != null){
+            return serviceManagerImplementation.isServiceConnected();
+        }else{
+            return false;
+        }
     }
 
     /**
@@ -35,7 +48,7 @@ public abstract class ServiceManager {
 
     public abstract void disconnect();
 
-    public abstract void isServiceAvailable();
+    public abstract boolean isServiceAvailable();
 
     public abstract boolean isServiceConnected();
 
