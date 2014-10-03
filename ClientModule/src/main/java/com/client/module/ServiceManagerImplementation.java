@@ -11,6 +11,7 @@ import android.os.IBinder;
 import android.os.RemoteException;
 
 import com.service.module.IMyAidlInterface;
+import com.service.module.IUnbindListenerInterface;
 
 import java.util.List;
 
@@ -23,13 +24,16 @@ public class ServiceManagerImplementation extends ServiceManager{
     ConnectionCallback connectionCallback;
     IBinder iBinder = null; //TODO this variable will tell us the current status of the connection;
     IMyAidlInterface aidlInterface = null; //TODO this will be the remote service object
+    IUnbindListenerInterface remoteUnbindListenerInterface = null; //TODO This event listener would be called back from remote service
     BindServiceConnection bindServiceConnection = null; //TODO use this to make connection to remote-service
+    UnbindListenerInterface localUnbindListenerInterface = null; //TODO our own listener implementation, user could register to this or not
 
-    /**Basic hard-coding setup
+    /**
+     * Basic hard-coding setup
      * This is being used in multiple places
      * */
-    String applicationPackage = "";
-    String serviceClassName = "";
+    String applicationPackage = "com.service.module";
+    String serviceClassName = "com.service.module.MyService";
 
 
     public ServiceManagerImplementation(Context context){
@@ -67,12 +71,14 @@ public class ServiceManagerImplementation extends ServiceManager{
 
     @Override
     public void setOnUnbindListener(UnbindListenerInterface unbindListenerInterface) {
-
+        localUnbindListenerInterface  = unbindListenerInterface;
     }
 
     @Override
     public void basicTypes(int anInt, long aLong, boolean aBoolean, float aFloat, double aDouble, String aString) throws RemoteException {
-
+            if(isBinderAlive() && aidlInterface!=null){
+                aidlInterface.basicTypes(anInt, aLong, aBoolean, aFloat, aDouble, aString);
+            }
     }
 
 
@@ -105,8 +111,14 @@ public class ServiceManagerImplementation extends ServiceManager{
                 ServiceManagerImplementation.this.context.unbindService(bindServiceConnection);
             }
         }
+    }
 
-
+    private void onDisconnectCleanup(){
+        iBinder = null;
+        aidlInterface = null;
+        remoteUnbindListenerInterface = null;
+        bindServiceConnection = null;
+        localUnbindListenerInterface = null;
     }
 
     /**
@@ -118,12 +130,36 @@ public class ServiceManagerImplementation extends ServiceManager{
         public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
             ServiceManagerImplementation.this.iBinder = iBinder;
             aidlInterface = IMyAidlInterface.Stub.asInterface(iBinder);
+            remoteUnbindListenerInterface = new IUnbindListenerInterface.Stub(){
+
+                @Override
+                public void onUnbind(){
+                    //TODO what happens on unbind.
+
+
+                    //TODO the last operation is that of the final unbind
+                    if(localUnbindListenerInterface!=null)
+                        localUnbindListenerInterface.onUnbind();
+
+                    //TODO make the do onDisconnectCleanup()
+                    onDisconnectCleanup();
+                }
+            };
+
+            /**
+             * TODO Have to write the method to check the manager and service version, check and
+             * request the user to upgrade the manager and service to match the same version
+             * and then call doDisconnect()
+             * */
 
         }
 
         @Override
         public void onServiceDisconnected(ComponentName componentName) {
-
+            /**
+             * onServiceDisconnected wouldn't get called as soon as the service is unbound,
+             * This event would get called at a much later time.
+             * */
         }
     }
 
