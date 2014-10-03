@@ -113,7 +113,11 @@ public class ServiceManagerImplementation extends ServiceManager{
                  //TODO write an exception for connection callback being null;
              }
          }else{
-             //TODO write an exception for application not being installed;
+             if(connectionCallback!=null){
+                 connectionCallback.onConnectionFailed();
+             }else{
+                 //TODO write an exception for connection callback being null;
+             }
          }
 
 
