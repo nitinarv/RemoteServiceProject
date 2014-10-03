@@ -83,11 +83,29 @@ public class ServiceManagerImplementation extends ServiceManager{
         if(bindServiceConnection == null){
             bindServiceConnection = new BindServiceConnection();
             Intent intent = getServiceStartingIntent();
+            boolean binderIsAlive = isBinderAlive();
+            boolean bindAttemptStatus = false;
+
+            if(!binderIsAlive)
+                bindAttemptStatus = ServiceManagerImplementation.this.context.bindService(intent, bindServiceConnection, Context.BIND_AUTO_CREATE);
+
+              if(!bindAttemptStatus){
+                  //TODO to write the code to find out why the bind failed
+
+              }
 
         }
      }
 
     private void doDisconnected(){
+        if(bindServiceConnection != null){
+            boolean binderIsAlive = isBinderAlive();
+            if(binderIsAlive){
+                //TODO have to confirm if this works
+                ServiceManagerImplementation.this.context.unbindService(bindServiceConnection);
+            }
+        }
+
 
     }
 
@@ -143,6 +161,11 @@ public class ServiceManagerImplementation extends ServiceManager{
                 return true;
         }
         return false;
+    }
+
+    private boolean isBinderAlive(){
+        boolean binderIsAlive = iBinder!=null && iBinder.isBinderAlive();
+        return binderIsAlive;
     }
 
     /**
