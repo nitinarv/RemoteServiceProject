@@ -46,17 +46,17 @@ public class ServiceManagerImplementation extends ServiceManager{
 
     @Override
     public void connect(ConnectionCallback connectionCallback) {
-        ServiceManagerImplementation.this.connectionCallback = connectionCallback;
+        doConnection(connectionCallback);
     }
 
     @Override
     public void disconnect() {
-
+        doDisconnected();
     }
 
     @Override
-    public void isServiceAvailable() {
-
+    public boolean isServiceAvailable() {
+        return isServiceRunning();
     }
 
     @Override
@@ -85,22 +85,29 @@ public class ServiceManagerImplementation extends ServiceManager{
     /**
      * Actual Implementation
      * */
-     private void doConnection(){
-        if(bindServiceConnection == null){
-            bindServiceConnection = new BindServiceConnection();
-            Intent intent = getServiceStartingIntent();
-            boolean binderIsAlive = isBinderAlive();
-            boolean bindAttemptStatus = false;
+     private void doConnection(ConnectionCallback connectionCallback){
+         ServiceManagerImplementation.this.connectionCallback = connectionCallback;
+         if(connectionCallback!=null){
+             if(bindServiceConnection == null){
+                 bindServiceConnection = new BindServiceConnection();
+                 Intent intent = getServiceStartingIntent();
+                 boolean binderIsAlive = isBinderAlive();
+                 boolean bindAttemptStatus = false;
 
-            if(!binderIsAlive)
-                bindAttemptStatus = ServiceManagerImplementation.this.context.bindService(intent, bindServiceConnection, Context.BIND_AUTO_CREATE);
+                 if(!binderIsAlive)
+                     bindAttemptStatus = ServiceManagerImplementation.this.context.bindService(intent, bindServiceConnection, Context.BIND_AUTO_CREATE);
 
-              if(!bindAttemptStatus){
-                  //TODO to write the code to find out why the bind failed
+                 if(!bindAttemptStatus){
+                     //TODO to write the code to find out why the bind failed
+                     connectionCallback.onConnectionFailed();
+                 }else{
+                     connectionCallback.onConnected(ServiceManagerImplementation.this);
+                 }
+             }
+         }else{
+             //TODO write an exception for connection callback being null;
+         }
 
-              }
-
-        }
      }
 
     private void doDisconnected(){
@@ -119,6 +126,7 @@ public class ServiceManagerImplementation extends ServiceManager{
         remoteUnbindListenerInterface = null;
         bindServiceConnection = null;
         localUnbindListenerInterface = null;
+        connectionCallback = null;
     }
 
     /**
@@ -134,8 +142,9 @@ public class ServiceManagerImplementation extends ServiceManager{
 
                 @Override
                 public void onUnbind(){
-                    //TODO what happens on unbind.
-
+                    //TODO what happens on unbind?
+                    if(connectionCallback!=null)
+                        connectionCallback.onDisconnected();
 
                     //TODO the last operation is that of the final unbind
                     if(localUnbindListenerInterface!=null)
