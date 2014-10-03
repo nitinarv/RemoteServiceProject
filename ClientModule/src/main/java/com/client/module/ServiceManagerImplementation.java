@@ -87,26 +87,37 @@ public class ServiceManagerImplementation extends ServiceManager{
      * */
      private void doConnection(ConnectionCallback connectionCallback){
          ServiceManagerImplementation.this.connectionCallback = connectionCallback;
-         if(connectionCallback!=null){
-             if(bindServiceConnection == null){
-                 bindServiceConnection = new BindServiceConnection();
-                 Intent intent = getServiceStartingIntent();
-                 boolean binderIsAlive = isBinderAlive();
-                 boolean bindAttemptStatus = false;
+         if(isApplicationInstalled()){
+             if(connectionCallback!=null){
+                 if(bindServiceConnection == null){
+                     bindServiceConnection = new BindServiceConnection();
+                     Intent intent = getServiceStartingIntent();
+                     boolean binderIsAlive = isBinderAlive();
+                     boolean bindAttemptStatus = false;
 
-                 if(!binderIsAlive)
-                     bindAttemptStatus = ServiceManagerImplementation.this.context.bindService(intent, bindServiceConnection, Context.BIND_AUTO_CREATE);
+                     if(!binderIsAlive)
+                         bindAttemptStatus = ServiceManagerImplementation.this.context.bindService(intent, bindServiceConnection, Context.BIND_AUTO_CREATE);
 
-                 if(!bindAttemptStatus){
-                     //TODO to write the code to find out why the bind failed
-                     connectionCallback.onConnectionFailed();
-                 }else{
-                     connectionCallback.onConnected(ServiceManagerImplementation.this);
+                     if(!bindAttemptStatus){
+                         //TODO to write the code to find out why the bind failed
+                         connectionCallback.onConnectionFailed();
+                         /**
+                          * 1. Service does not exist,
+                          * 2. Service is Running and bind failed due to other reasons
+                          * */
+                     }else{
+                         connectionCallback.onConnected(ServiceManagerImplementation.this);
+                     }
                  }
+             }else{
+                 //TODO write an exception for connection callback being null;
              }
          }else{
-             //TODO write an exception for connection callback being null;
+             //TODO write an exception for application not being installed;
          }
+
+
+
 
      }
 
@@ -120,6 +131,9 @@ public class ServiceManagerImplementation extends ServiceManager{
         }
     }
 
+    /**
+     * Re-setting other variables related to the service connection
+     * */
     private void onDisconnectCleanup(){
         iBinder = null;
         aidlInterface = null;
@@ -160,6 +174,13 @@ public class ServiceManagerImplementation extends ServiceManager{
              * request the user to upgrade the manager and service to match the same version
              * and then call doDisconnect()
              * */
+            //TODO checkCurrentVersion();
+            //TODO onUnbindCallbacks();
+            try {
+                aidlInterface.setUnbindListener(remoteUnbindListenerInterface);
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            }
 
         }
 
